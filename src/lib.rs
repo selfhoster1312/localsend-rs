@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 mod axum2;
 use axum2::Info;
+pub mod random;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

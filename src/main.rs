@@ -14,14 +14,18 @@ async fn main() {
 
     match cmd.command {
         Command::List(_) => {
-            unimplemented!();
-        },
+            tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
+            // cmd::list::wait_for_lan().await;
+        }
         Command::Send(send_cmd) => {
             let mut file = File::open(send_cmd.file).unwrap();
             let mut buf = Vec::new();
             file.read_to_end(&mut buf).unwrap();
             // TODO: mimetype
-            localsend.send(&send_cmd.receiver, "text/plain", buf).await.unwrap();
+            localsend
+                .send(&send_cmd.receiver, "text/plain", buf)
+                .await
+                .unwrap();
         }
     }
 }
