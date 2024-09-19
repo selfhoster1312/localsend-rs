@@ -3,13 +3,13 @@ use tokio::net::{UdpSocket, TcpListener};
 use std::io;
 use std::collections::HashMap;
 
-mod axum2;
+pub mod axum2;
 use axum2::Info;
 pub mod random;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum DeviceType {
+pub enum DeviceType {
     Mobile,
     Desktop,
     Web,
@@ -19,14 +19,14 @@ enum DeviceType {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum Protocol {
+pub enum Protocol {
     Http,
     Https,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Announce {
+pub struct Announce {
     #[serde(flatten)]
     info: Info,
     announce: bool,

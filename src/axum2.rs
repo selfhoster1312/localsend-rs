@@ -7,40 +7,40 @@ use crate::{DeviceType, Protocol};
 // TODO: That is almost the same as Announce, just without announce…
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct Info {
-    pub(crate) alias: String,
-    pub(crate) version: String,
-    pub(crate) device_model: Option<String>,
-    pub(crate) device_type: Option<crate::DeviceType>,
-    pub(crate) fingerprint: String,
-    pub(crate) port: u16,
-    pub(crate) protocol: crate::Protocol,
-    pub(crate) download: bool,
+pub struct Info {
+    pub alias: String,
+    pub version: String,
+    pub device_model: Option<String>,
+    pub device_type: Option<crate::DeviceType>,
+    pub fingerprint: String,
+    pub port: u16,
+    pub protocol: crate::Protocol,
+    pub download: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct File {
-    pub(crate) id: String,
-    pub(crate) file_name: String,
-    pub(crate) file_type: String,
-    pub(crate) size: usize,
-    pub(crate) sha256: Option<String>,
-    pub(crate) preview: Option<String>,
+pub struct File {
+    pub id: String,
+    pub file_name: String,
+    pub file_type: String,
+    pub size: usize,
+    pub sha256: Option<String>,
+    pub preview: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct PrepareUploadRequest {
-    pub(crate) info: Info,
-    pub(crate) files: HashMap<String, File>,
+pub struct PrepareUploadRequest {
+    pub info: Info,
+    pub files: HashMap<String, File>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct PrepareUploadResponse {
-    pub(crate) session_id: String,
-    pub(crate) files: HashMap<String, String>,
+pub struct PrepareUploadResponse {
+    pub session_id: String,
+    pub files: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,7 +65,7 @@ async fn post_register() -> Json<Info> {
     })
 }
 
-pub(crate) fn gen_id() -> Result<String, getrandom::Error> {
+pub fn gen_id() -> Result<String, getrandom::Error> {
     let mut buf = [0u8; 8];
     getrandom::getrandom(&mut buf)?;
     let mut string = String::with_capacity(16);
