@@ -4,6 +4,7 @@ use std::io;
 use std::collections::HashMap;
 
 mod axum2;
+use axum2::Info;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -25,14 +26,8 @@ enum Protocol {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Announce {
-    alias: String,
-    version: String,
-    device_model: Option<String>,
-    device_type: Option<DeviceType>,
-    fingerprint: String,
-    port: u16,
-    protocol: Protocol,
-    download: bool,
+    #[serde(flatten)]
+    info: Info,
     announce: bool,
 }
 
@@ -82,15 +77,17 @@ impl LocalSend {
 
     pub async fn send_announce(&self) -> Result<(), OurError> {
         let announce = Announce {
-            alias: String::from("Link Mauve"),
-            version: String::from("2.0"),
-            device_model: Some(String::from("Linux")),
-            device_type: Some(DeviceType::Desktop),
-            fingerprint: String::from("Hello world!"),
-            port: 53317,
-            protocol: Protocol::Http,
-            download: true,
             announce: true,
+            info: Info {
+                alias: String::from("Link Mauve"),
+                version: String::from("2.0"),
+                device_model: Some(String::from("Linux")),
+                device_type: Some(DeviceType::Desktop),
+                fingerprint: String::from("Hello world!"),
+                port: 53317,
+                protocol: Protocol::Http,
+                download: true,
+            },
         };
         let json = serde_json::to_string(&announce)?;
         println!("{json}");
