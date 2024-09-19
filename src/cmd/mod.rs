@@ -1,4 +1,4 @@
-use argh::{FromArgs};
+use argh::FromArgs;
 
 pub mod list;
 pub mod send;

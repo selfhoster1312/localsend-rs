@@ -1,7 +1,7 @@
-use serde::{Serialize, Deserialize};
-use tokio::net::{UdpSocket, TcpListener};
-use std::io;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io;
+use tokio::net::{TcpListener, UdpSocket};
 
 pub mod axum2;
 use axum2::Info;
@@ -71,9 +71,7 @@ impl LocalSend {
 
         // TODO: Add support for IPv6.
         let udp_socket = UdpSocket::bind("224.0.0.167:53317").await?;
-        Ok(LocalSend {
-            udp_socket,
-        })
+        Ok(LocalSend { udp_socket })
     }
 
     pub async fn send_announce(&self) -> Result<(), OurError> {
@@ -93,12 +91,19 @@ impl LocalSend {
         let json = serde_json::to_string(&announce)?;
         println!("{json}");
 
-        self.udp_socket.send_to(json.as_bytes(), "224.0.0.167:53317").await?;
+        self.udp_socket
+            .send_to(json.as_bytes(), "224.0.0.167:53317")
+            .await?;
 
         Ok(())
     }
 
-    pub async fn send(&self, recipient: &str, file_type: impl Into<String>, data: Vec<u8>) -> Result<(), OurError> {
+    pub async fn send(
+        &self,
+        recipient: &str,
+        file_type: impl Into<String>,
+        data: Vec<u8>,
+    ) -> Result<(), OurError> {
         let info = axum2::Info {
             alias: String::from("Link Mauve"),
             version: String::from("2.0"),
@@ -114,14 +119,17 @@ impl LocalSend {
             file_name: String::from("abc.txt"),
             file_type: file_type.into(),
             size: 12,
-            sha256: Some(String::from("c0535e4be2b79ffd93291305436bf889314e4a3faec05ecffcbb7df31ad9e51a")),
-            preview: Some(String::from("Hello world!"))
+            sha256: Some(String::from(
+                "c0535e4be2b79ffd93291305436bf889314e4a3faec05ecffcbb7df31ad9e51a",
+            )),
+            preview: Some(String::from("Hello world!")),
         };
         let mut files = HashMap::new();
         files.insert(file.id.clone(), file);
         let json = axum2::PrepareUploadRequest { info, files };
         let client = reqwest::Client::new();
-        let res = client.post("http://192.168.42.184:53317/api/localsend/v2/prepare-upload")
+        let res = client
+            .post("http://192.168.42.184:53317/api/localsend/v2/prepare-upload")
             .json(&json)
             .send()
             .await?;
@@ -132,8 +140,13 @@ impl LocalSend {
                 println!("{response:?}");
                 for (file_id, token) in response.files {
                     let session_id = response.session_id.clone();
-                    let res = client.post("http://192.168.42.184:53317/api/localsend/v2/upload")
-                        .query(&[("sessionId", session_id), ("fileId", file_id), ("token", token)])
+                    let res = client
+                        .post("http://192.168.42.184:53317/api/localsend/v2/upload")
+                        .query(&[
+                            ("sessionId", session_id),
+                            ("fileId", file_id),
+                            ("token", token),
+                        ])
                         .body(data.clone())
                         .send()
                         .await?;

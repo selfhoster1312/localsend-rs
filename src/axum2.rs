@@ -1,8 +1,13 @@
-use serde::{Serialize, Deserialize};
+use crate::{DeviceType, Protocol};
+use axum::{
+    body::Bytes,
+    extract::{Json, Query, State},
+    routing::{get, post},
+    Router,
+};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use axum::{routing::{get, post}, Router, extract::{Json, Query, State}, body::Bytes};
-use crate::{DeviceType, Protocol};
 
 // TODO: That is almost the same as Announce, just without announce…
 #[derive(Debug, Serialize, Deserialize)]
@@ -75,7 +80,10 @@ pub fn gen_id() -> Result<String, getrandom::Error> {
     Ok(string)
 }
 
-async fn post_prepare_upload(State(state): State<Arc<OurState>>, Json(payload): Json<PrepareUploadRequest>) -> Json<PrepareUploadResponse> {
+async fn post_prepare_upload(
+    State(state): State<Arc<OurState>>,
+    Json(payload): Json<PrepareUploadRequest>,
+) -> Json<PrepareUploadResponse> {
     println!("Prepare upload!");
     println!("{payload:?}");
     println!("{state:?}");
@@ -113,8 +121,7 @@ async fn post_cancel() {
 }
 
 #[derive(Debug)]
-struct OurState {
-}
+struct OurState {}
 
 impl OurState {
     fn new() -> OurState {
@@ -126,13 +133,19 @@ pub fn route() -> Router {
     let state = Arc::new(OurState::new());
     Router::new()
         .route("/api/localsend/v2/register", post(post_register))
-        .route("/api/localsend/v2/prepare-upload", post(post_prepare_upload))
+        .route(
+            "/api/localsend/v2/prepare-upload",
+            post(post_prepare_upload),
+        )
         .route("/api/localsend/v2/upload", post(post_upload))
-        .route("/api/localsend/v2/prepare-download", post(post_prepare_download))
+        .route(
+            "/api/localsend/v2/prepare-download",
+            post(post_prepare_download),
+        )
         .route("/api/localsend/v2/download", get(get_download))
         .route("/api/localsend/v2/cancel", post(post_cancel))
         .with_state(state)
 
-        // Legacy endpoint, not used.
-        //.route("/api/localsend/v2/info", get(get_info))
+    // Legacy endpoint, not used.
+    //.route("/api/localsend/v2/info", get(get_info))
 }
