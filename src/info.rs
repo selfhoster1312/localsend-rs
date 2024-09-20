@@ -7,7 +7,7 @@ use crate::OurError;
 use crate::random::random_alias;
 
 pub const PKG_NAME: &str = env!("CARGO_PKG_NAME");
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const PROTO_VERSION: &str = "2.0";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SavedConfig {
