@@ -51,10 +51,11 @@ pub struct LocalSend {
 
 impl LocalSend {
     pub async fn new(info: Info) -> Result<LocalSend, OurError> {
+        let info2 = info.clone();
         tokio::task::spawn(async {
             // TODO: configure port from info.port
             let tcp_listener = TcpListener::bind("0.0.0.0:53317").await.unwrap();
-            let app = crate::axum2::route();
+            let app = crate::axum2::route(info2);
             axum::serve(tcp_listener, app).await.unwrap();
         });
 

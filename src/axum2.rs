@@ -1,4 +1,4 @@
-use crate::info::{DeviceType, Info, Protocol, SavedConfig};
+use crate::info::Info;
 use axum::{
     body::Bytes,
     extract::{Json, Query, State},
@@ -42,17 +42,9 @@ struct UploadQuery {
     token: String,
 }
 
-async fn post_register() -> Json<Info> {
+async fn post_register(State(state): State<Arc<OurState>>) -> Json<Info> {
     println!("Register!");
-    axum::Json(Info {
-        config: SavedConfig::new_random(),
-        version: String::from("2.0"),
-        device_model: Some(String::from("Linux")),
-        device_type: Some(DeviceType::Desktop),
-        port: 53317,
-        protocol: Protocol::Http,
-        download: true,
-    })
+    axum::Json(state.info.clone())
 }
 
 pub fn gen_id() -> Result<String, getrandom::Error> {
@@ -105,17 +97,19 @@ async fn post_cancel() {
     println!("Cancel!");
 }
 
-#[derive(Debug)]
-struct OurState {}
+#[derive(Clone, Debug)]
+struct OurState {
+    info: Info,
+}
 
 impl OurState {
-    fn new() -> OurState {
-        OurState {}
+    fn new(info: Info) -> OurState {
+        OurState { info }
     }
 }
 
-pub fn route() -> Router {
-    let state = Arc::new(OurState::new());
+pub fn route(info: Info) -> Router {
+    let state = Arc::new(OurState::new(info));
     Router::new()
         .route("/api/localsend/v2/register", post(post_register))
         .route(
