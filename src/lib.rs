@@ -7,14 +7,7 @@ pub mod axum2;
 pub mod info;
 pub mod random;
 
-use info::{DeviceType, Info};
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Protocol {
-    Http,
-    Https,
-}
+use info::{DeviceType, Info, Protocol, SavedConfig};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -29,6 +22,7 @@ pub enum OurError {
     Json(serde_json::Error),
     Io(io::Error),
     Reqwest(reqwest::Error),
+    NoXDG,
 }
 
 impl From<serde_json::Error> for OurError {
@@ -70,11 +64,10 @@ impl LocalSend {
         let announce = Announce {
             announce: true,
             info: Info {
-                alias: String::from("Link Mauve"),
+                config: SavedConfig::new_random(),
                 version: String::from("2.0"),
                 device_model: Some(String::from("Linux")),
                 device_type: Some(DeviceType::Desktop),
-                fingerprint: String::from("Hello world!"),
                 port: 53317,
                 protocol: Protocol::Http,
                 download: true,
@@ -97,11 +90,10 @@ impl LocalSend {
         data: Vec<u8>,
     ) -> Result<(), OurError> {
         let info = Info {
-            alias: String::from("Link Mauve"),
+            config: SavedConfig::new_random(),
             version: String::from("2.0"),
             device_model: Some(String::from("Linux")),
             device_type: Some(DeviceType::Desktop),
-            fingerprint: String::from("Hello world!"),
             port: 53317,
             protocol: Protocol::Http,
             download: true,

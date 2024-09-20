@@ -1,7 +1,4 @@
-use crate::{
-    info::Info,
-    DeviceType, Protocol
-};
+use crate::info::{DeviceType, Info, Protocol, SavedConfig};
 use axum::{
     body::Bytes,
     extract::{Json, Query, State},
@@ -48,11 +45,10 @@ struct UploadQuery {
 async fn post_register() -> Json<Info> {
     println!("Register!");
     axum::Json(Info {
-        alias: String::from("Link Mauve"),
+        config: SavedConfig::new_random(),
         version: String::from("2.0"),
         device_model: Some(String::from("Linux")),
         device_type: Some(DeviceType::Desktop),
-        fingerprint: String::from("Hello world!"),
         port: 53317,
         protocol: Protocol::Http,
         download: true,

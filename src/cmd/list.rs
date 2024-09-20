@@ -19,7 +19,7 @@ pub async fn wait_for_lan() {
         if let Ok(response) = serde_json::from_slice::<Info>(&buf[0..size]) {
             println!(
                 "Received LAN advertisement for LocalSend client: {}",
-                response.alias
+                response.config.alias
             );
         }
     }
