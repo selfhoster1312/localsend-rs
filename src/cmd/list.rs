@@ -1,7 +1,7 @@
 use argh::FromArgs;
 use tokio::net::UdpSocket;
 
-use localsend::axum2::Info;
+use localsend::info::Info;
 
 #[derive(Clone, Debug, FromArgs)]
 #[argh(subcommand, name = "list")]

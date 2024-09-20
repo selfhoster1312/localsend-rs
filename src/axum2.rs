@@ -1,4 +1,7 @@
-use crate::{DeviceType, Protocol};
+use crate::{
+    info::Info,
+    DeviceType, Protocol
+};
 use axum::{
     body::Bytes,
     extract::{Json, Query, State},
@@ -8,20 +11,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-
-// TODO: That is almost the same as Announce, just without announce…
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Info {
-    pub alias: String,
-    pub version: String,
-    pub device_model: Option<String>,
-    pub device_type: Option<crate::DeviceType>,
-    pub fingerprint: String,
-    pub port: u16,
-    pub protocol: crate::Protocol,
-    pub download: bool,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

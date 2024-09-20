@@ -4,18 +4,10 @@ use std::io;
 use tokio::net::{TcpListener, UdpSocket};
 
 pub mod axum2;
-use axum2::Info;
+pub mod info;
 pub mod random;
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum DeviceType {
-    Mobile,
-    Desktop,
-    Web,
-    Headless,
-    Server,
-}
+use info::{DeviceType, Info};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -104,7 +96,7 @@ impl LocalSend {
         file_type: impl Into<String>,
         data: Vec<u8>,
     ) -> Result<(), OurError> {
-        let info = axum2::Info {
+        let info = Info {
             alias: String::from("Link Mauve"),
             version: String::from("2.0"),
             device_model: Some(String::from("Linux")),
