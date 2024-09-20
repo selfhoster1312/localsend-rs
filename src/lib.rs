@@ -7,7 +7,7 @@ pub mod axum2;
 pub mod info;
 pub mod random;
 
-use info::{DeviceType, Info, Protocol, SavedConfig};
+use info::{DeviceType, Info, Protocol};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -44,12 +44,15 @@ impl From<reqwest::Error> for OurError {
 }
 
 pub struct LocalSend {
+    /// Information about the current device/session
+    info: Info,
     udp_socket: UdpSocket,
 }
 
 impl LocalSend {
-    pub async fn new() -> Result<LocalSend, OurError> {
+    pub async fn new(info: Info) -> Result<LocalSend, OurError> {
         tokio::task::spawn(async {
+            // TODO: configure port from info.port
             let tcp_listener = TcpListener::bind("0.0.0.0:53317").await.unwrap();
             let app = crate::axum2::route();
             axum::serve(tcp_listener, app).await.unwrap();
@@ -57,21 +60,17 @@ impl LocalSend {
 
         // TODO: Add support for IPv6.
         let udp_socket = UdpSocket::bind("224.0.0.167:53317").await?;
-        Ok(LocalSend { udp_socket })
+        Ok(LocalSend { info, udp_socket })
+    }
+
+    pub async fn from_xdg() -> Result<LocalSend, OurError> {
+        Self::new(Info::from_xdg().await?).await
     }
 
     pub async fn send_announce(&self) -> Result<(), OurError> {
         let announce = Announce {
             announce: true,
-            info: Info {
-                config: SavedConfig::new_random(),
-                version: String::from("2.0"),
-                device_model: Some(String::from("Linux")),
-                device_type: Some(DeviceType::Desktop),
-                port: 53317,
-                protocol: Protocol::Http,
-                download: true,
-            },
+            info: self.info.clone(),
         };
         let json = serde_json::to_string(&announce)?;
         println!("{json}");
@@ -89,15 +88,6 @@ impl LocalSend {
         file_type: impl Into<String>,
         data: Vec<u8>,
     ) -> Result<(), OurError> {
-        let info = Info {
-            config: SavedConfig::new_random(),
-            version: String::from("2.0"),
-            device_model: Some(String::from("Linux")),
-            device_type: Some(DeviceType::Desktop),
-            port: 53317,
-            protocol: Protocol::Http,
-            download: true,
-        };
         let file = axum2::File {
             id: axum2::gen_id().unwrap(),
             file_name: String::from("abc.txt"),
@@ -110,7 +100,7 @@ impl LocalSend {
         };
         let mut files = HashMap::new();
         files.insert(file.id.clone(), file);
-        let json = axum2::PrepareUploadRequest { info, files };
+        let json = axum2::PrepareUploadRequest { info: self.info.clone(), files };
         let client = reqwest::Client::new();
         let res = client
             .post("http://192.168.42.184:53317/api/localsend/v2/prepare-upload")
