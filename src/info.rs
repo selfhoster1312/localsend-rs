@@ -63,7 +63,7 @@ impl Info {
     pub async fn from_xdg() -> Result<Self, OurError> {
         Ok(Self {
             config: SavedConfig::from_xdg().await?,
-            version: VERSION.to_string(),
+            version: PROTO_VERSION.to_string(),
             device_model: Some(OS.to_string()),
             device_type: Some(DeviceType::default()),
             port: 53317,
