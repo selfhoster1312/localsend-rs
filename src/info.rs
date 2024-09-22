@@ -1,10 +1,10 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tokio::fs::{create_dir_all, read_to_string, try_exists};
 
 use std::env::consts::OS;
 
-use crate::OurError;
 use crate::random::random_alias;
+use crate::OurError;
 
 pub const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 pub const PROTO_VERSION: &str = "2.0";
@@ -99,4 +99,3 @@ pub enum Protocol {
     Http,
     Https,
 }
-

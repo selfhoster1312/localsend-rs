@@ -28,10 +28,12 @@ impl LocalSend {
         let info2 = info.clone();
 
         println!("Spawning web task");
-        
+
         tokio::task::spawn(async {
             // TODO: add IPv6
-            let listener = TcpListener::bind(format!("0.0.0.0:{}", info2.port)).await.unwrap();
+            let listener = TcpListener::bind(format!("0.0.0.0:{}", info2.port))
+                .await
+                .unwrap();
             Self::blocking_recv_web(listener, info2).await.unwrap();
         });
 
@@ -43,7 +45,9 @@ impl LocalSend {
             // TODO: add IPv6
             let listener = UdpSocket::bind("224.0.0.167:53317").await.unwrap();
             Self::send_announce(&listener, info2.clone()).await.unwrap();
-            Self::blocking_recv_multicast(listener, info2).await.unwrap();
+            Self::blocking_recv_multicast(listener, info2)
+                .await
+                .unwrap();
         });
 
         println!("Done");
@@ -56,10 +60,9 @@ impl LocalSend {
     /// This function, although async, will occupy the current task and should be spawned
     /// on a dedicated task. This is done automatically by [`LocalSend::new`].
     pub async fn blocking_recv_web(listener: TcpListener, info: Info) -> Result<(), OurError> {
-        axum::serve(
-            listener,
-            crate::axum2::route(info)
-        ).await.unwrap();
+        axum::serve(listener, crate::axum2::route(info))
+            .await
+            .unwrap();
 
         unreachable!();
     }
@@ -95,7 +98,7 @@ impl LocalSend {
 
     pub async fn send_announce(socket: &UdpSocket, info: Info) -> Result<(), OurError> {
         println!("Announcing to the network...");
-        
+
         let announce = Announce {
             announce: true,
             info: info,
@@ -103,9 +106,7 @@ impl LocalSend {
         let json = serde_json::to_string(&announce)?;
         println!("{json}");
 
-        socket
-            .send_to(json.as_bytes(), "224.0.0.167:53317")
-            .await?;
+        socket.send_to(json.as_bytes(), "224.0.0.167:53317").await?;
 
         Ok(())
     }
@@ -128,7 +129,10 @@ impl LocalSend {
         };
         let mut files = HashMap::new();
         files.insert(file.id.clone(), file);
-        let json = axum2::PrepareUploadRequest { info: self.info.clone(), files };
+        let json = axum2::PrepareUploadRequest {
+            info: self.info.clone(),
+            files,
+        };
         let client = reqwest::Client::new();
         let res = client
             .post("http://192.168.42.184:53317/api/localsend/v2/prepare-upload")
