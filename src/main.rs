@@ -10,7 +10,6 @@ async fn main() {
     let cmd: Cli = argh::from_env();
 
     let localsend = LocalSend::from_xdg().await.unwrap();
-    localsend.send_announce().await.unwrap();
 
     match cmd.command {
         Command::List(_) => {

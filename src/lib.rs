@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io;
 use tokio::net::{TcpListener, UdpSocket};
 
 pub mod axum2;
@@ -22,37 +21,89 @@ pub struct Announce {
 pub struct LocalSend {
     /// Information about the current device/session
     info: Info,
-    udp_socket: UdpSocket,
 }
 
 impl LocalSend {
     pub async fn new(info: Info) -> Result<LocalSend, OurError> {
         let info2 = info.clone();
+
+        println!("Spawning web task");
+        
         tokio::task::spawn(async {
-            // TODO: configure port from info.port
-            let tcp_listener = TcpListener::bind("0.0.0.0:53317").await.unwrap();
-            let app = crate::axum2::route(info2);
-            axum::serve(tcp_listener, app).await.unwrap();
+            // TODO: add IPv6
+            let listener = TcpListener::bind(format!("0.0.0.0:{}", info2.port)).await.unwrap();
+            Self::blocking_recv_web(listener, info2).await.unwrap();
         });
 
-        // TODO: Add support for IPv6.
-        let udp_socket = UdpSocket::bind("224.0.0.167:53317").await?;
-        Ok(LocalSend { info, udp_socket })
+        println!("Done");
+        println!("Spawning multicast task");
+
+        let info2 = info.clone();
+        tokio::task::spawn(async {
+            // TODO: add IPv6
+            let listener = UdpSocket::bind("224.0.0.167:53317").await.unwrap();
+            Self::send_announce(&listener, info2.clone()).await.unwrap();
+            Self::blocking_recv_multicast(listener, info2).await.unwrap();
+        });
+
+        println!("Done");
+
+        Ok(LocalSend { info })
+    }
+
+    /// Wait for web requests on the configured HTTP port
+    ///
+    /// This function, although async, will occupy the current task and should be spawned
+    /// on a dedicated task. This is done automatically by [`LocalSend::new`].
+    pub async fn blocking_recv_web(listener: TcpListener, info: Info) -> Result<(), OurError> {
+        axum::serve(
+            listener,
+            crate::axum2::route(info)
+        ).await.unwrap();
+
+        unreachable!();
+    }
+
+    // TODO: not receiving anything?
+    // probably doing it all wrong
+    pub async fn blocking_recv_multicast(socket: UdpSocket, _info: Info) -> Result<(), OurError> {
+        // let _ = socket.set_broadcast(true);
+
+        let mut buf = [0; 4096];
+        while let Ok(size) = socket.recv(&mut buf).await {
+            println!("Received response");
+            if let Ok(response) = serde_json::from_slice::<Info>(&buf[0..size]) {
+                println!(
+                    "Received LAN advertisement response for LocalSend client: {}",
+                    response.config.alias
+                );
+            } else if let Ok(response) = serde_json::from_slice::<Announce>(&buf[0..size]) {
+                println!(
+                    "Received LAN advertisement request for LocalSend client: {}",
+                    response.info.config.alias
+                );
+                // TODO: we should probably reply to this announecment
+            }
+        }
+
+        unreachable!();
     }
 
     pub async fn from_xdg() -> Result<LocalSend, OurError> {
         Self::new(Info::from_xdg().await?).await
     }
 
-    pub async fn send_announce(&self) -> Result<(), OurError> {
+    pub async fn send_announce(socket: &UdpSocket, info: Info) -> Result<(), OurError> {
+        println!("Announcing to the network...");
+        
         let announce = Announce {
             announce: true,
-            info: self.info.clone(),
+            info: info,
         };
         let json = serde_json::to_string(&announce)?;
         println!("{json}");
 
-        self.udp_socket
+        socket
             .send_to(json.as_bytes(), "224.0.0.167:53317")
             .await?;
 
