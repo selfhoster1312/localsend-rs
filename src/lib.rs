@@ -4,6 +4,8 @@ use std::io;
 use tokio::net::{TcpListener, UdpSocket};
 
 pub mod axum2;
+mod error;
+pub use error::OurError;
 pub mod info;
 pub mod random;
 
@@ -15,32 +17,6 @@ pub struct Announce {
     #[serde(flatten)]
     info: Info,
     announce: bool,
-}
-
-#[derive(Debug)]
-pub enum OurError {
-    Json(serde_json::Error),
-    Io(io::Error),
-    Reqwest(reqwest::Error),
-    NoXDG,
-}
-
-impl From<serde_json::Error> for OurError {
-    fn from(err: serde_json::Error) -> OurError {
-        OurError::Json(err)
-    }
-}
-
-impl From<io::Error> for OurError {
-    fn from(err: io::Error) -> OurError {
-        OurError::Io(err)
-    }
-}
-
-impl From<reqwest::Error> for OurError {
-    fn from(err: reqwest::Error) -> OurError {
-        OurError::Reqwest(err)
-    }
 }
 
 pub struct LocalSend {
