@@ -1,3 +1,4 @@
+use axum_server::tls_rustls::RustlsConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::net::{TcpListener, UdpSocket};
@@ -8,7 +9,7 @@ pub use error::OurError;
 pub mod info;
 pub mod random;
 
-use info::{DeviceType, Info, Protocol};
+use info::{Config, DeviceType, Info, Protocol};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -20,47 +21,57 @@ pub struct Announce {
 
 pub struct LocalSend {
     /// Information about the current device/session
-    info: Info,
+    config: Config,
 }
 
 impl LocalSend {
-    pub async fn new(info: Info) -> Result<LocalSend, OurError> {
-        let info2 = info.clone();
+    pub async fn new(config: Config) -> Result<LocalSend, OurError> {
+        let config2 = config.clone();
 
         println!("Spawning web task");
 
         tokio::task::spawn(async {
             // TODO: add IPv6
-            let listener = TcpListener::bind(format!("0.0.0.0:{}", info2.port))
+            let listener = TcpListener::bind(format!("0.0.0.0:{}", config2.info.port))
                 .await
                 .unwrap();
-            Self::blocking_recv_web(listener, info2).await.unwrap();
+            Self::blocking_recv_web(listener, config2).await.unwrap();
         });
 
         println!("Done");
         println!("Spawning multicast task");
 
-        let info2 = info.clone();
+        let config2 = config.clone();
         tokio::task::spawn(async {
             // TODO: add IPv6
             let listener = UdpSocket::bind("224.0.0.167:53317").await.unwrap();
-            Self::send_announce(&listener, info2.clone()).await.unwrap();
-            Self::blocking_recv_multicast(listener, info2)
+            Self::send_announce(&listener, config2.info.clone())
+                .await
+                .unwrap();
+            Self::blocking_recv_multicast(listener, config2)
                 .await
                 .unwrap();
         });
 
         println!("Done");
 
-        Ok(LocalSend { info })
+        Ok(LocalSend { config })
     }
 
     /// Wait for web requests on the configured HTTP port
     ///
     /// This function, although async, will occupy the current task and should be spawned
     /// on a dedicated task. This is done automatically by [`LocalSend::new`].
-    pub async fn blocking_recv_web(listener: TcpListener, info: Info) -> Result<(), OurError> {
-        axum::serve(listener, crate::axum2::route(info))
+    pub async fn blocking_recv_web(listener: TcpListener, config: Config) -> Result<(), OurError> {
+        // TODO: error
+        let rustls_config =
+            RustlsConfig::from_pem(config.tls_config.public_pem, config.tls_config.private_pem)
+                .await
+                .unwrap();
+
+        // TODO: is this ok to turn tokio::TcpListener into std::TcpListener for axum_server???
+        axum_server::from_tcp_rustls(listener.into_std().unwrap(), rustls_config)
+            .serve(crate::axum2::route(config.info).into_make_service())
             .await
             .unwrap();
 
@@ -69,7 +80,10 @@ impl LocalSend {
 
     // TODO: not receiving anything?
     // probably doing it all wrong
-    pub async fn blocking_recv_multicast(socket: UdpSocket, _info: Info) -> Result<(), OurError> {
+    pub async fn blocking_recv_multicast(
+        socket: UdpSocket,
+        _config: Config,
+    ) -> Result<(), OurError> {
         // let _ = socket.set_broadcast(true);
 
         let mut buf = [0; 4096];
@@ -93,7 +107,7 @@ impl LocalSend {
     }
 
     pub async fn from_xdg() -> Result<LocalSend, OurError> {
-        Self::new(Info::from_xdg().await?).await
+        Self::new(Config::from_xdg().await?).await
     }
 
     pub async fn send_announce(socket: &UdpSocket, info: Info) -> Result<(), OurError> {
@@ -130,7 +144,7 @@ impl LocalSend {
         let mut files = HashMap::new();
         files.insert(file.id.clone(), file);
         let json = axum2::PrepareUploadRequest {
-            info: self.info.clone(),
+            info: self.config.info.clone(),
             files,
         };
         let client = reqwest::Client::new();
