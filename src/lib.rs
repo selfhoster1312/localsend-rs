@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::net::{TcpListener, UdpSocket};
 
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, SocketAddrV4, SocketAddr};
 
 pub mod axum2;
 mod error;
@@ -15,6 +15,10 @@ pub mod info;
 pub mod random;
 
 use info::{Config, DeviceType, Info, Protocol};
+
+pub const MULTICAST_ADDR: Ipv4Addr = Ipv4Addr::new(224, 0, 0, 167);
+pub const MULTICAST_PORT: u16 = 53317;
+pub const MULTICAST_SOCKETADDR: SocketAddrV4 = SocketAddrV4::new(MULTICAST_ADDR, MULTICAST_PORT);
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -44,9 +48,9 @@ impl LocalSend {
 
         let config2 = config.clone();
         tokio::task::spawn(async {
-            debug!("Spawning UDP multicast listener on 224.0.0.167:53317");
+            debug!("Spawning UDP multicast listener on {}", MULTICAST_SOCKETADDR);
             // TODO: add IPv6
-            let listener = UdpSocket::bind("224.0.0.167:53317").await.unwrap();
+            let listener = UdpSocket::bind(MULTICAST_SOCKETADDR).await.unwrap();
             Self::send_announce(&listener, config2.info.clone())
                 .await
                 .unwrap();
@@ -87,7 +91,7 @@ impl LocalSend {
         socket: UdpSocket,
         _config: Config,
     ) -> Result<(), OurError> {
-        // let _ = socket.set_broadcast(true);
+        let _ = socket.join_multicast_v4(MULTICAST_ADDR, std::net::Ipv4Addr::UNSPECIFIED);
 
         let mut buf = [0; 4096];
         while let Ok(size) = socket.recv(&mut buf).await {
@@ -114,7 +118,7 @@ impl LocalSend {
     }
 
     pub async fn send_announce(socket: &UdpSocket, info: Info) -> Result<(), OurError> {
-        debug!("Sending UDP multicast announce to 224.0.0.167:53317");
+        debug!("Sending UDP multicast announce to {}", MULTICAST_SOCKETADDR);
 
         let announce = Announce {
             announce: true,
@@ -122,7 +126,7 @@ impl LocalSend {
         };
         let json = serde_json::to_string(&announce)?;
 
-        socket.send_to(json.as_bytes(), "224.0.0.167:53317").await?;
+        socket.send_to(json.as_bytes(), MULTICAST_SOCKETADDR).await?;
 
         Ok(())
     }
