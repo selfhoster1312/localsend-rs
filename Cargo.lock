@@ -850,6 +850,7 @@ dependencies = [
  "dirs",
  "getrandom",
  "log",
+ "pem",
  "rand",
  "rcgen",
  "reqwest",

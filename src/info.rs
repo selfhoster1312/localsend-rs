@@ -64,9 +64,7 @@ impl TlsConfig {
 
         let public_pem = cert.pem().as_bytes().to_vec();
 
-        // let fingerprint = String::from_utf8_lossy(digest(&SHA256, &public_pem).as_ref()).to_string();
-        // let fingerprint = format!("{:x?}", digest(&SHA256, &public_pem).as_ref());
-        let fingerprint = digest(&SHA256, &public_pem)
+        let fingerprint = digest(&SHA256, pem::parse(&cert.pem()).unwrap().contents())
             .as_ref()
             .iter()
             .map(|x| format!("{x:x}"))
