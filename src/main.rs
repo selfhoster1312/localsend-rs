@@ -1,12 +1,18 @@
 use localsend::LocalSend;
 use std::fs::File;
 use std::io::Read;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 mod cmd;
 use cmd::{Cli, Command};
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .init();
+
     let cmd: Cli = argh::from_env();
 
     let localsend = LocalSend::from_xdg().await.unwrap();

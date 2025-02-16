@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use axum_server::tls_rustls::RustlsConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -28,9 +31,8 @@ impl LocalSend {
     pub async fn new(config: Config) -> Result<LocalSend, OurError> {
         let config2 = config.clone();
 
-        println!("Spawning web task");
-
         tokio::task::spawn(async {
+            debug!("Spawning TCP listener on port {}", config2.info.port);
             // TODO: add IPv6
             let listener = TcpListener::bind(format!("0.0.0.0:{}", config2.info.port))
                 .await
@@ -38,13 +40,12 @@ impl LocalSend {
             Self::blocking_recv_web(listener, config2).await.unwrap();
         });
 
-        println!("Done");
-        println!("Spawning multicast task");
-
         let config2 = config.clone();
         tokio::task::spawn(async {
+            debug!("Spawning UDP multicast listener on 224.0.0.167:53317");
             // TODO: add IPv6
             let listener = UdpSocket::bind("224.0.0.167:53317").await.unwrap();
+            debug!("Sending UDP multicast announce");
             Self::send_announce(&listener, config2.info.clone())
                 .await
                 .unwrap();
@@ -52,8 +53,6 @@ impl LocalSend {
                 .await
                 .unwrap();
         });
-
-        println!("Done");
 
         Ok(LocalSend { config })
     }
@@ -111,7 +110,7 @@ impl LocalSend {
     }
 
     pub async fn send_announce(socket: &UdpSocket, info: Info) -> Result<(), OurError> {
-        println!("Announcing to the network...");
+        debug!("Sending UDP multicast announce to 224.0.0.167:53317");
 
         let announce = Announce {
             announce: true,
