@@ -18,8 +18,11 @@ async fn main() {
     let localsend = LocalSend::from_xdg().await.unwrap();
 
     match cmd.command {
-        Command::List(_) => {
-            tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
+        Command::List(list_cmd) => {
+            tokio::time::sleep(tokio::time::Duration::from_secs(
+                list_cmd.timeout.unwrap_or(30).into(),
+            ))
+            .await;
             // cmd::list::wait_for_lan().await;
         }
         Command::Send(send_cmd) => {

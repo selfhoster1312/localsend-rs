@@ -6,7 +6,15 @@ use localsend::info::Info;
 #[derive(Clone, Debug, FromArgs)]
 #[argh(subcommand, name = "list")]
 /// list other devices found on LAN
-pub struct ListCmd {}
+pub struct ListCmd {
+    #[argh(
+        option,
+        short = 't',
+        long = "timeout",
+        description = "how long to wait (in seconds)"
+    )]
+    pub timeout: Option<u32>,
+}
 
 pub async fn wait_for_lan() {
     let socket = UdpSocket::bind("0.0.0.0:53317").await.unwrap();

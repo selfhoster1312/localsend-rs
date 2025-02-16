@@ -47,7 +47,6 @@ impl LocalSend {
             debug!("Spawning UDP multicast listener on 224.0.0.167:53317");
             // TODO: add IPv6
             let listener = UdpSocket::bind("224.0.0.167:53317").await.unwrap();
-            debug!("Sending UDP multicast announce");
             Self::send_announce(&listener, config2.info.clone())
                 .await
                 .unwrap();
@@ -122,7 +121,6 @@ impl LocalSend {
             info: info,
         };
         let json = serde_json::to_string(&announce)?;
-        println!("{json}");
 
         socket.send_to(json.as_bytes(), "224.0.0.167:53317").await?;
 
@@ -135,6 +133,7 @@ impl LocalSend {
         file_type: impl Into<String>,
         data: Vec<u8>,
     ) -> Result<(), OurError> {
+        info!("Sending file to peer {}", recipient);
         let file = axum2::File {
             id: axum2::gen_id().unwrap(),
             file_name: String::from("abc.txt"),
