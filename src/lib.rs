@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::net::{TcpListener, UdpSocket};
 
-use std::net::{Ipv4Addr, SocketAddrV4, SocketAddr};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub mod axum2;
 mod error;
@@ -48,7 +48,10 @@ impl LocalSend {
 
         let config2 = config.clone();
         tokio::task::spawn(async {
-            debug!("Spawning UDP multicast listener on {}", MULTICAST_SOCKETADDR);
+            debug!(
+                "Spawning UDP multicast listener on {}",
+                MULTICAST_SOCKETADDR
+            );
             // TODO: add IPv6
             let listener = UdpSocket::bind(MULTICAST_SOCKETADDR).await.unwrap();
             Self::send_announce(&listener, config2.info.clone())
@@ -125,7 +128,9 @@ impl LocalSend {
         };
         let json = serde_json::to_string(&announce)?;
 
-        socket.send_to(json.as_bytes(), MULTICAST_SOCKETADDR).await?;
+        socket
+            .send_to(json.as_bytes(), MULTICAST_SOCKETADDR)
+            .await?;
 
         Ok(())
     }
@@ -186,15 +191,5 @@ impl LocalSend {
             status => todo!("{status:?}"),
         }
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        assert!(true);
     }
 }

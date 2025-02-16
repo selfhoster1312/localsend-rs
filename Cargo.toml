@@ -19,7 +19,7 @@ aws-lc-rs = "1.9"
 dirs = "5.0.1"
 getrandom = "0.2.15"
 log = "0.4"
-rand = "0.8.5"
+rand = "0.8"
 rcgen = { version = "0.13.1", features = [ "pem", "aws_lc_rs" ] }
 reqwest = { version = "0.12.5", default-features = false, features = ["json"] }
 rustls = "0.23.13"
@@ -29,3 +29,4 @@ tokio = { version = "1.38.0", features = ["rt-multi-thread", "fs"] }
 tracing-subscriber = { version = "0.3.1", features = [ "env-filter" ] }
 axum-client-ip = "0.7.0"
 pem = "*"
+pure_rng = "0.8.0"

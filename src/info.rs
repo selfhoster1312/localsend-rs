@@ -1,12 +1,12 @@
 use aws_lc_rs::digest::{digest, SHA256};
 use rcgen::{CertificateParams, KeyPair, PKCS_RSA_SHA256};
 use serde::{Deserialize, Serialize};
-use tokio::fs::{create_dir_all, read_to_string, try_exists, write};
+use tokio::fs::{create_dir_all, read_to_string, write};
 
 use std::env::consts::OS;
 use std::path::PathBuf;
 
-use crate::random::random_alias;
+use crate::random::{alias_from_seed, random_alias};
 use crate::OurError;
 
 pub const PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -23,6 +23,8 @@ impl Config {
         // First load the certificates, because the fingerprint is used in Info
         let tls_config = TlsConfig::from_xdg().await?;
         let info = Info::from_xdg(&tls_config.fingerprint).await?;
+
+        debug!("Operating as {}", info.config.alias);
 
         Ok(Config { info, tls_config })
     }
@@ -41,21 +43,22 @@ impl TlsConfig {
 
         let private_key_file = cfg_dir.join("private.pem");
 
-        let (keypair, private_pem) = if let Ok(private_key) = read_to_string(&private_key_file).await {
-            debug!("Loading TLS private key from disk...");
-            let keypair = KeyPair::from_pem(&private_key)?;
-            let private_pem = keypair.serialize_pem().as_bytes().to_vec();
-            (keypair, private_pem)
-        } else {
-            debug!("Generating new TLS private key...");
-            let keypair = KeyPair::generate_for(&PKCS_RSA_SHA256)?;
-            let private_pem = keypair.serialize_pem().as_bytes().to_vec();
+        let (keypair, private_pem) =
+            if let Ok(private_key) = read_to_string(&private_key_file).await {
+                debug!("Loading TLS private key from disk...");
+                let keypair = KeyPair::from_pem(&private_key)?;
+                let private_pem = keypair.serialize_pem().as_bytes().to_vec();
+                (keypair, private_pem)
+            } else {
+                debug!("Generating new TLS private key...");
+                let keypair = KeyPair::generate_for(&PKCS_RSA_SHA256)?;
+                let private_pem = keypair.serialize_pem().as_bytes().to_vec();
 
-            debug!("Persisting TLS private key to disk...");
-            write(&private_key_file, &private_pem).await?;
+                debug!("Persisting TLS private key to disk...");
+                write(&private_key_file, &private_pem).await?;
 
-            (keypair, private_pem)
-        };
+                (keypair, private_pem)
+            };
 
         let cert = CertificateParams::new([])
             .unwrap()
@@ -99,27 +102,26 @@ pub struct SavedConfig {
 }
 
 impl SavedConfig {
-    pub async fn from_xdg(fingerprint: &str) -> Result<Self, OurError> {
-        let cfg_file = cfg_dir().await?.join("config.json");
-
-        if let Ok(true) = try_exists(&cfg_file).await {
-            let content = read_to_string(&cfg_file).await?;
-            let saved_config: SavedConfig = serde_json::from_str(&content)?;
-
-            if saved_config.fingerprint != fingerprint {
-                panic!();
-            }
-            Ok(saved_config)
-        } else {
-            // Generate new identity and persist it
-            // TODO: save to disk
-            Ok(Self::new_random(fingerprint))
+    /// Create a specific identity (alias/fingerprint)
+    pub fn new(alias: &str, fingerprint: &str) -> Self {
+        Self {
+            alias: alias.to_string(),
+            fingerprint: fingerprint.to_string(),
         }
     }
 
+    /// Generate a random alias with a specific fingerprint
     pub fn new_random(fingerprint: &str) -> Self {
         Self {
             alias: random_alias(),
+            fingerprint: fingerprint.to_string(),
+        }
+    }
+
+    /// Derive a stable alias from a specific fingerprint
+    pub fn from_fingerprint(fingerprint: &str) -> Self {
+        Self {
+            alias: alias_from_seed(fingerprint),
             fingerprint: fingerprint.to_string(),
         }
     }
@@ -141,7 +143,7 @@ pub struct Info {
 impl Info {
     pub async fn from_xdg(fingerprint: &str) -> Result<Self, OurError> {
         Ok(Self {
-            config: SavedConfig::from_xdg(&fingerprint).await?,
+            config: SavedConfig::from_fingerprint(&fingerprint),
             version: PROTO_VERSION.to_string(),
             device_model: Some(OS.to_string()),
             device_type: Some(DeviceType::default()),
