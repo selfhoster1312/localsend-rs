@@ -21,7 +21,7 @@ pub const MULTICAST_PORT: u16 = 53317;
 pub const MULTICAST_SOCKETADDR: SocketAddrV4 = SocketAddrV4::new(MULTICAST_ADDR, MULTICAST_PORT);
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct Announce {
     #[serde(flatten)]
     info: Info,

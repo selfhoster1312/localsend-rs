@@ -121,7 +121,7 @@ impl SavedConfig {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct Info {
     #[serde(flatten)]
     pub config: SavedConfig,
