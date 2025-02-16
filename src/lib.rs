@@ -62,7 +62,7 @@ impl LocalSend {
         Ok(LocalSend { config })
     }
 
-    /// Wait for web requests on the configured HTTP port
+    /// Wait for HTTP web requests on the specified TCP listener.
     ///
     /// This function, although async, will occupy the current task and should be spawned
     /// on a dedicated task. This is done automatically by [`LocalSend::new`].
@@ -85,8 +85,7 @@ impl LocalSend {
         unreachable!();
     }
 
-    // TODO: not receiving anything?
-    // probably doing it all wrong
+    /// Wait for announcements on a UDP ip/addr combo
     pub async fn blocking_recv_multicast(
         socket: UdpSocket,
         _config: Config,

@@ -5,6 +5,7 @@ pub enum OurError {
     Reqwest(reqwest::Error),
     NoXDG,
     Tokio(tokio::task::JoinError),
+    Cert(rcgen::Error),
 }
 
 impl std::error::Error for OurError {}
@@ -20,6 +21,7 @@ impl std::fmt::Display for OurError {
                 Self::Reqwest(e) => format!("Client HTTP error: {e}"),
                 Self::NoXDG => format!("Could not find $XDG_CONFIG_DIR or $HOME."),
                 Self::Tokio(e) => format!("Execution error: {e}"),
+                Self::Cert(e) => format!("Certificate error: {e}"),
             }
         )
     }
@@ -46,5 +48,11 @@ impl From<reqwest::Error> for OurError {
 impl From<tokio::task::JoinError> for OurError {
     fn from(err: tokio::task::JoinError) -> OurError {
         OurError::Tokio(err)
+    }
+}
+
+impl From<rcgen::Error> for OurError {
+    fn from(err: rcgen::Error) -> OurError {
+        OurError::Cert(err)
     }
 }

@@ -1,7 +1,7 @@
 use aws_lc_rs::digest::{digest, SHA256};
 use rcgen::{CertificateParams, KeyPair, PKCS_RSA_SHA256};
 use serde::{Deserialize, Serialize};
-use tokio::fs::{create_dir_all, read, read_to_string, try_exists};
+use tokio::fs::{create_dir_all, read_to_string, try_exists, write};
 
 use std::env::consts::OS;
 use std::path::PathBuf;
@@ -39,25 +39,30 @@ impl TlsConfig {
     pub async fn from_xdg() -> Result<Self, OurError> {
         let cfg_dir = cfg_dir().await?;
 
-        let (public_pem, private_pem) = match (
-            read(cfg_dir.join("public.pem")).await,
-            read(cfg_dir.join("private.pem")).await,
-        ) {
-            (Ok(public), Ok(private)) => (public, private),
-            _ => {
-                // Generate new keypair because reading from disk failed
-                // TODO: error
-                let keypair = KeyPair::generate_for(&PKCS_RSA_SHA256).unwrap();
-                let cert = CertificateParams::new([])
-                    .unwrap()
-                    .self_signed(&keypair)
-                    .unwrap();
-                (
-                    cert.pem().as_bytes().to_vec(),
-                    keypair.serialize_pem().as_bytes().to_vec(),
-                )
-            }
+        let private_key_file = cfg_dir.join("private.pem");
+
+        let (keypair, private_pem) = if let Ok(private_key) = read_to_string(&private_key_file).await {
+            debug!("Loading TLS private key from disk...");
+            let keypair = KeyPair::from_pem(&private_key)?;
+            let private_pem = keypair.serialize_pem().as_bytes().to_vec();
+            (keypair, private_pem)
+        } else {
+            debug!("Generating new TLS private key...");
+            let keypair = KeyPair::generate_for(&PKCS_RSA_SHA256)?;
+            let private_pem = keypair.serialize_pem().as_bytes().to_vec();
+
+            debug!("Persisting TLS private key to disk...");
+            write(&private_key_file, &private_pem).await?;
+
+            (keypair, private_pem)
         };
+
+        let cert = CertificateParams::new([])
+            .unwrap()
+            .self_signed(&keypair)
+            .unwrap();
+
+        let public_pem = cert.pem().as_bytes().to_vec();
 
         // let fingerprint = String::from_utf8_lossy(digest(&SHA256, &public_pem).as_ref()).to_string();
         // let fingerprint = format!("{:x?}", digest(&SHA256, &public_pem).as_ref());
@@ -66,6 +71,8 @@ impl TlsConfig {
             .iter()
             .map(|x| format!("{x:x}"))
             .collect();
+
+        debug!("Now operating with TLS fingerprint {}", fingerprint);
 
         Ok(TlsConfig {
             public_pem,
