@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -42,8 +43,15 @@ struct UploadQuery {
     token: String,
 }
 
-async fn post_register(State(state): State<Arc<OurState>>) -> Json<Info> {
-    println!("Register!");
+async fn post_register(
+    State(state): State<Arc<OurState>>,
+    peer_info: Option<Json<Value>>,
+) -> Json<Info> {
+    if let Some(Json(peer_info)) = peer_info {
+        info!("Found peer request: {}", peer_info);
+    } else {
+        warn!("Received peer request without JSON data attached");
+    }
     axum::Json(state.info.clone())
 }
 
@@ -126,5 +134,5 @@ pub fn route(info: Info) -> Router {
         .with_state(state)
 
     // Legacy endpoint, not used.
-    //.route("/api/localsend/v2/info", get(get_info))
+    // .route("/api/localsend/v2/info", get(get_info))
 }
