@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::net::{TcpListener, UdpSocket};
 
+use std::net::SocketAddr;
+
 pub mod axum2;
 mod error;
 pub use error::OurError;
@@ -70,7 +72,10 @@ impl LocalSend {
 
         // TODO: is this ok to turn tokio::TcpListener into std::TcpListener for axum_server???
         axum_server::from_tcp_rustls(listener.into_std().unwrap(), rustls_config)
-            .serve(crate::axum2::route(config.info).into_make_service())
+            .serve(
+                crate::axum2::route(config.info)
+                    .into_make_service_with_connect_info::<SocketAddr>(),
+            )
             .await
             .unwrap();
 

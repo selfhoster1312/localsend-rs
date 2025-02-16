@@ -5,6 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use axum_client_ip::InsecureClientIp;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -44,14 +45,11 @@ struct UploadQuery {
 }
 
 async fn post_register(
+    peer: InsecureClientIp,
     State(state): State<Arc<OurState>>,
-    peer_info: Option<Json<Value>>,
+    peer_info: Json<Value>,
 ) -> Json<Info> {
-    if let Some(Json(peer_info)) = peer_info {
-        info!("Found peer request: {}", peer_info);
-    } else {
-        warn!("Received peer request without JSON data attached");
-    }
+    info!("Found peer request from {}: {:?}", peer.0, peer_info);
     axum::Json(state.info.clone())
 }
 
