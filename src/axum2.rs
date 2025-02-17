@@ -59,9 +59,7 @@ pub fn gen_id() -> String {
 
     while count < 8 {
         let byte = rand::random::<u8>();
-        string.extend(
-            format!("{byte:02x}").chars()
-        );
+        string.extend(format!("{byte:02x}").chars());
 
         count += 1;
     }

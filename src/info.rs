@@ -12,7 +12,7 @@ use crate::OurError;
 pub const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 pub const PROTO_VERSION: &str = "2.0";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Config {
     pub info: Info,
     pub tls_config: TlsConfig,
@@ -24,13 +24,13 @@ impl Config {
         let tls_config = TlsConfig::from_xdg().await?;
         let info = Info::from_xdg(&tls_config.fingerprint).await?;
 
-        debug!("Operating as {}", info.config.alias);
+        info!("Operating as {}", info.config.alias);
 
         Ok(Config { info, tls_config })
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TlsConfig {
     pub public_pem: Vec<u8>,
     pub private_pem: Vec<u8>,
@@ -95,7 +95,7 @@ pub async fn cfg_dir() -> Result<PathBuf, OurError> {
     Ok(cfg_dir)
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct SavedConfig {
     pub alias: String,
     pub fingerprint: String,
@@ -127,7 +127,7 @@ impl SavedConfig {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Info {
     #[serde(flatten)]
@@ -154,7 +154,7 @@ impl Info {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum DeviceType {
     Mobile,
@@ -174,7 +174,7 @@ impl Default for DeviceType {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Protocol {
     Http,

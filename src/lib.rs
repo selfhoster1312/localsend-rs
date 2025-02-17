@@ -91,24 +91,36 @@ impl LocalSend {
     /// Wait for announcements on a UDP ip/addr combo
     pub async fn blocking_recv_multicast(
         socket: UdpSocket,
-        _config: Config,
+        config: Config,
     ) -> Result<(), OurError> {
         let _ = socket.join_multicast_v4(MULTICAST_ADDR, std::net::Ipv4Addr::UNSPECIFIED);
 
         let mut buf = [0; 4096];
         while let Ok(size) = socket.recv(&mut buf).await {
-            println!("Received response");
+            if let Ok(announce) = serde_json::from_slice::<Announce>(&buf[0..size]) {
+                let announcer = &announce.info.config.alias;
+
+                info!("Received multicast announcement from {announcer}");
+                debug!("{:?}", announce);
+
+                if announce.info.config.alias == config.info.config.alias {
+                    debug!("Ignoring announcement from self");
+                    continue;
+                } else {
+                    if let Err(e) = Self::send_announce_response(&socket, config.info.clone()).await
+                    {
+                        error!("Failed to respond to {announcer}'s announcement: {e}")
+                    }
+
+                    continue;
+                }
+            }
+
             if let Ok(response) = serde_json::from_slice::<Info>(&buf[0..size]) {
-                println!(
-                    "Received LAN advertisement response for LocalSend client: {}",
-                    response.config.alias
-                );
-            } else if let Ok(response) = serde_json::from_slice::<Announce>(&buf[0..size]) {
-                println!(
-                    "Received LAN advertisement request for LocalSend client: {}",
-                    response.info.config.alias
-                );
-                // TODO: we should probably reply to this announecment
+                info!("Received multicast response from {}", response.config.alias);
+                debug!("{:?}", response);
+
+                continue;
             }
         }
 
@@ -128,6 +140,17 @@ impl LocalSend {
         };
         let json = serde_json::to_string(&announce)?;
 
+        socket
+            .send_to(json.as_bytes(), MULTICAST_SOCKETADDR)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn send_announce_response(socket: &UdpSocket, info: Info) -> Result<(), OurError> {
+        debug!("Sending UDP multicast response to {}", MULTICAST_SOCKETADDR);
+
+        let json = serde_json::to_string(&info)?;
         socket
             .send_to(json.as_bytes(), MULTICAST_SOCKETADDR)
             .await?;
