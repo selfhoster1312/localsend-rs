@@ -848,7 +848,6 @@ dependencies = [
  "axum-client-ip",
  "axum-server",
  "dirs",
- "getrandom",
  "log",
  "pem",
  "rand",

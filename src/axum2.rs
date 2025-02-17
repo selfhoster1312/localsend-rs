@@ -53,14 +53,20 @@ async fn post_register(
     axum::Json(state.info.clone())
 }
 
-pub fn gen_id() -> Result<String, getrandom::Error> {
-    let mut buf = [0u8; 8];
-    getrandom::getrandom(&mut buf)?;
+pub fn gen_id() -> String {
     let mut string = String::with_capacity(16);
-    for byte in buf {
-        string.extend(format!("{byte:02x}").chars());
+    let mut count = 0;
+
+    while count < 8 {
+        let byte = rand::random::<u8>();
+        string.extend(
+            format!("{byte:02x}").chars()
+        );
+
+        count += 1;
     }
-    Ok(string)
+
+    string
 }
 
 async fn post_prepare_upload(
@@ -76,11 +82,11 @@ async fn post_prepare_upload(
         let mut buf = String::new();
         std::io::stdin().read_line(&mut buf).unwrap();
         if buf == "Y" || buf == "y" || buf == "" {
-            files.insert(id, gen_id().unwrap());
+            files.insert(id, gen_id());
         }
     }
     Json(PrepareUploadResponse {
-        session_id: gen_id().unwrap(),
+        session_id: gen_id(),
         files,
     })
 }

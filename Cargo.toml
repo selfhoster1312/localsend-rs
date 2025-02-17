@@ -17,7 +17,6 @@ axum = { version = "0.8", features = [ "macros", "tracing" ] }
 axum-server = { version = "0.7", features = [ "rustls", "tls-rustls" ] }
 aws-lc-rs = "1.9"
 dirs = "5.0.1"
-getrandom = "0.2.15"
 log = "0.4"
 rand = "0.8"
 rcgen = { version = "0.13.1", features = [ "pem", "aws_lc_rs" ] }

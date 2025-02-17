@@ -143,7 +143,7 @@ impl LocalSend {
     ) -> Result<(), OurError> {
         info!("Sending file to peer {}", recipient);
         let file = axum2::File {
-            id: axum2::gen_id().unwrap(),
+            id: axum2::gen_id(),
             file_name: String::from("abc.txt"),
             file_type: file_type.into(),
             size: 12,
